@@ -11,23 +11,23 @@ static class Program
     static void Main()
     {
         ApplicationConfiguration.Initialize();
+        Application.EnableVisualStyles();
 
         // Leer cadena de conexión desde appsettings.json
-        var config = new ConfigurationBuilder()
-            .SetBasePath(AppContext.BaseDirectory)
-            .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
-            .Build();
-
-        string connectionString = config.GetConnectionString("DefaultConnection")
-            ?? throw new InvalidOperationException(
-                "No se encontró 'DefaultConnection' en appsettings.json");
-
-        var options = new DbContextOptionsBuilder<AppDbContext>()
-            .UseSqlServer(connectionString)
-            .Options;
-
-        using var context = new AppDbContext(options);
-
-        Application.Run(new MainForm(context));
+        Application.Run(
+            new MainForm( 
+                new AppDbContext(
+                    new DbContextOptionsBuilder<AppDbContext>()
+                        .UseSqlServer(
+                            new ConfigurationBuilder()
+                                .SetBasePath( AppContext.BaseDirectory )
+                                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+                                .Build().GetConnectionString( "DefaultConnection" ) ?? 
+                            throw 
+                                new InvalidOperationException( "No se encontró 'DefaultConnection' en appsettings.json" )
+                            ).Options
+                )
+            )
+        );
     }
 }
