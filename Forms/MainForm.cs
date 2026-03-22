@@ -8,9 +8,10 @@ public partial class MainForm : Form
 {
     private readonly AppDbContext _context;
 
-    private int _pageSize    = 50;
-    private int _currentPage = 1;
-    private int _totalCount  = 0;
+    private int  _pageSize    = 50;
+    private int  _currentPage = 1;
+    private int  _totalCount  = 0;
+    private bool _listo       = false;   // evita queries durante la inicialización
 
     // Mapa: nombre visible → nombre de propiedad del modelo
     private static readonly Dictionary<string, string> ColumnasPropiedades = new()
@@ -67,6 +68,8 @@ public partial class MainForm : Form
 
         cmbPageSize.Items.AddRange([25, 50, 100, 200, 500]);
         cmbPageSize.SelectedItem = _pageSize;
+
+        _listo = true;   // a partir de aquí los eventos ya pueden disparar queries
     }
 
     // ─── Carga inicial ────────────────────────────────────────────────────────
@@ -278,6 +281,7 @@ public partial class MainForm : Form
 
     private async void cmbPageSize_SelectedIndexChanged(object? sender, EventArgs e)
     {
+        if (!_listo) return;
         if (cmbPageSize.SelectedItem is int size)
         {
             _pageSize    = size;
@@ -315,12 +319,14 @@ public partial class MainForm : Form
 
     private async void cmbColumnaOrden_SelectedIndexChanged(object? sender, EventArgs e)
     {
+        if (!_listo) return;
         _currentPage = 1;
         await CargarPaginaAsync();
     }
 
     private async void chkDescendente_CheckedChanged(object? sender, EventArgs e)
     {
+        if (!_listo) return;
         _currentPage = 1;
         await CargarPaginaAsync();
     }
