@@ -8,10 +8,11 @@ public partial class MainForm : Form
 {
     private readonly AppDbContext _context;
 
-    private int  _pageSize    = 50;
+    private int  _pageSize    = 24;
     private int  _currentPage = 1;
     private int  _totalCount  = 0;
     private bool _listo       = false;   // evita queries durante la inicialización
+    private bool _modoAuto    = false;
 
     // Mapa: nombre visible → nombre de propiedad del modelo
     private static readonly Dictionary<string, string> ColumnasPropiedades = new()
@@ -66,8 +67,11 @@ public partial class MainForm : Form
         cmbColumnaOrden.Items.AddRange(columnas);
         cmbColumnaOrden.SelectedIndex = 0;
 
+        cmbPageSize.Items.Add("Auto");
         cmbPageSize.Items.AddRange([25, 50, 100, 200, 500]);
-        cmbPageSize.SelectedItem = _pageSize;
+        cmbPageSize.SelectedIndex = 0;   // Auto por defecto
+
+        dgvClientes.Resize += dgvClientes_Resize;
 
         _listo = true;   // a partir de aquí los eventos ya pueden disparar queries
     }
@@ -76,6 +80,26 @@ public partial class MainForm : Form
 
     private async void MainForm_Load(object sender, EventArgs e)
     {
+        if (_modoAuto) _pageSize = CalcularFilasPorPagina();
+        await CargarPaginaAsync();
+    }
+
+    // ─── Paginación automática ────────────────────────────────────────────────
+
+    private int CalcularFilasPorPagina()
+    {
+        int altaDisponible = dgvClientes.ClientSize.Height - dgvClientes.ColumnHeadersHeight;
+        int altoFila       = dgvClientes.RowTemplate.Height;
+        return Math.Max(1, altaDisponible / altoFila);
+    }
+
+    private async void dgvClientes_Resize(object? sender, EventArgs e)
+    {
+        if (!_listo || !_modoAuto) return;
+        int nuevasPagina = CalcularFilasPorPagina();
+        if (nuevasPagina == _pageSize) return;
+        _pageSize    = nuevasPagina;
+        _currentPage = 1;
         await CargarPaginaAsync();
     }
 
@@ -282,8 +306,17 @@ public partial class MainForm : Form
     private async void cmbPageSize_SelectedIndexChanged(object? sender, EventArgs e)
     {
         if (!_listo) return;
-        if (cmbPageSize.SelectedItem is int size)
+
+        if (cmbPageSize.SelectedItem is string s && s == "Auto")
         {
+            _modoAuto    = true;
+            _pageSize    = CalcularFilasPorPagina();
+            _currentPage = 1;
+            await CargarPaginaAsync();
+        }
+        else if (cmbPageSize.SelectedItem is int size)
+        {
+            _modoAuto    = false;
             _pageSize    = size;
             _currentPage = 1;
             await CargarPaginaAsync();
